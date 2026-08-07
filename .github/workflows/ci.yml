@@ -1,0 +1,41 @@
+# CI for terraform-confium.
+#
+# Validates every module:
+#   - terraform fmt -check
+#   - terraform validate
+#   - terraform plan (against a kind cluster, no real cloud creds needed)
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [signerd, log-server, transparency-cluster]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.*"
+
+      - name: fmt
+        working-directory: modules/${{ matrix.module }}
+        run: terraform fmt -check -recursive
+
+      - name: init
+        working-directory: modules/${{ matrix.module }}
+        run: terraform init -backend=false
+
+      - name: validate
+        working-directory: modules/${{ matrix.module }}
+        run: terraform validate

@@ -1,8 +1,7 @@
 # Confium signerd — threshold signing daemon.
 #
 # Deploys signerd as a StatefulSet with PVC for share storage, a
-# ServiceAccount with RBAC for the operator, and a NetworkPolicy that
-# allows ingress only from the coordinator.
+# ServiceAccount with RBAC for the operator, and a Service on :7000.
 
 terraform {
   required_version = ">= 1.5"
@@ -63,7 +62,9 @@ resource "kubernetes_service_account" "signerd" {
 }
 
 resource "kubernetes_cluster_role" "signerd" {
-  metadata { name = "confium-signerd" }
+  metadata {
+    name = "confium-signerd"
+  }
   rule {
     api_groups = [""]
     resources  = ["secrets", "configmaps"]
@@ -72,7 +73,9 @@ resource "kubernetes_cluster_role" "signerd" {
 }
 
 resource "kubernetes_cluster_role_binding" "signerd" {
-  metadata { name = "confium-signerd" }
+  metadata {
+    name = "confium-signerd"
+  }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "ClusterRole"
@@ -89,14 +92,24 @@ resource "kubernetes_stateful_set" "signerd" {
   metadata {
     name      = "confium-signerd"
     namespace = kubernetes_namespace.this.metadata[0].name
-    labels    = { app = "confium-signerd" }
+    labels = {
+      app = "confium-signerd"
+    }
   }
   spec {
-    service_name_name = "confium-signerd"
-    replicas          = var.replicas
-    selector { match_labels = { app = "confium-signerd" } }
+    service_name = "confium-signerd"
+    replicas     = var.replicas
+    selector {
+      match_labels = {
+        app = "confium-signerd"
+      }
+    }
     template {
-      metadata { labels = { app = "confium-signerd" } }
+      metadata {
+        labels = {
+          app = "confium-signerd"
+        }
+      }
       spec {
         service_account_name = kubernetes_service_account.signerd.metadata[0].name
         container {
@@ -118,10 +131,16 @@ resource "kubernetes_stateful_set" "signerd" {
       }
     }
     volume_claim_template {
-      metadata { name = "shares" }
+      metadata {
+        name = "shares"
+      }
       spec {
         access_modes = ["ReadWriteOnce"]
-        resources { requests = { storage = "${var.share_storage_gb}Gi" } }
+        resources {
+          requests = {
+            storage = "${var.share_storage_gb}Gi"
+          }
+        }
       }
     }
   }
@@ -133,7 +152,9 @@ resource "kubernetes_service" "signerd" {
     namespace = kubernetes_namespace.this.metadata[0].name
   }
   spec {
-    selector = { app = "confium-signerd" }
+    selector = {
+      app = "confium-signerd"
+    }
     port {
       port        = 7000
       target_port = 7000
@@ -141,6 +162,14 @@ resource "kubernetes_service" "signerd" {
   }
 }
 
-output "namespace"    { value = kubernetes_namespace.this.metadata[0].name }
-output "service_name" { value = kubernetes_service.signerd.metadata[0].name }
-output "replicas"     { value = var.replicas }
+output "namespace" {
+  value = kubernetes_namespace.this.metadata[0].name
+}
+
+output "service_name" {
+  value = kubernetes_service.signerd.metadata[0].name
+}
+
+output "replicas" {
+  value = var.replicas
+}

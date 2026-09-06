@@ -14,14 +14,27 @@ terraform {
   }
 }
 
-variable "namespace"        { type = string default = "confium-system" }
-variable "image"            { type = string default = "ghcr.io/confium/log-server:latest" }
-variable "log_storage_gb"   { type = number default = 50 }
+variable "namespace" {
+  type    = string
+  default = "confium-system"
+}
+
+variable "image" {
+  type    = string
+  default = "ghcr.io/confium/log-server:latest"
+}
+
+variable "log_storage_gb" {
+  type    = number
+  default = 50
+}
+
 variable "witnesses" {
   description = "List of witness endpoints to gossip heads to."
   type        = list(string)
   default     = []
 }
+
 variable "anchor_cadence_minutes" {
   description = "Cadence for OTS Bitcoin anchoring."
   type        = number
@@ -29,7 +42,9 @@ variable "anchor_cadence_minutes" {
 }
 
 resource "kubernetes_config_map" "log_server" {
-  metadata { name = "confium-log-server" }
+  metadata {
+    name = "confium-log-server"
+  }
   data = {
     "log-server.toml" = <<-EOT
       [log]
@@ -47,12 +62,26 @@ resource "kubernetes_config_map" "log_server" {
 }
 
 resource "kubernetes_stateful_set" "log_server" {
-  metadata { name = "confium-log-server" }
+  metadata {
+    name = "confium-log-server"
+    labels = {
+      app = "confium-log-server"
+    }
+  }
   spec {
-    service_name_name = "confium-log-server"
-    replicas          = 1
+    service_name = "confium-log-server"
+    replicas     = 1
+    selector {
+      match_labels = {
+        app = "confium-log-server"
+      }
+    }
     template {
-      metadata { labels = { app = "confium-log-server" } }
+      metadata {
+        labels = {
+          app = "confium-log-server"
+        }
+      }
       spec {
         container {
           name  = "log-server"
@@ -66,27 +95,45 @@ resource "kubernetes_stateful_set" "log_server" {
             mount_path = "/etc/confium"
           }
         }
-        volume { name = "config"
-          config_map_name = kubernetes_config_map.log_server.metadata[0].name
+        volume {
+          name = "config"
+          config_map {
+            name = kubernetes_config_map.log_server.metadata[0].name
+          }
         }
       }
     }
     volume_claim_template {
-      metadata { name = "log-data" }
+      metadata {
+        name = "log-data"
+      }
       spec {
         access_modes = ["ReadWriteOnce"]
-        resources { requests = { storage = "${var.log_storage_gb}Gi" } }
+        resources {
+          requests = {
+            storage = "${var.log_storage_gb}Gi"
+          }
+        }
       }
     }
   }
 }
 
 resource "kubernetes_service" "log_server" {
-  metadata { name = "confium-log-server" }
+  metadata {
+    name = "confium-log-server"
+  }
   spec {
-    selector = { app = "confium-log-server" }
-    port     { port = 7878 target_port = 7878 }
+    selector = {
+      app = "confium-log-server"
+    }
+    port {
+      port        = 7878
+      target_port = 7878
+    }
   }
 }
 
-output "service_name" { value = kubernetes_service.log_server.metadata[0].name }
+output "service_name" {
+  value = kubernetes_service.log_server.metadata[0].name
+}

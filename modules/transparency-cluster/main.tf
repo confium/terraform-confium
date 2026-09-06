@@ -12,12 +12,15 @@ terraform {
   required_version = ">= 1.5"
 }
 
-variable "namespace" { type = string default = "confium-system" }
+variable "namespace" {
+  type    = string
+  default = "confium-system"
+}
 
 module "log_server" {
-  source          = "../log-server"
-  namespace       = var.namespace
-  log_storage_gb  = 50
+  source         = "../log-server"
+  namespace      = var.namespace
+  log_storage_gb = 50
 }
 
 # Monitor + witness would be additional module calls here; kept as TODO

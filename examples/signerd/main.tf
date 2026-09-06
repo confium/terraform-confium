@@ -7,6 +7,6 @@ provider "kubernetes" {
 }
 
 module "signerd" {
-  source          = "../modules/signerd"
+  source          = "../../modules/signerd"
   coordinator_url = "https://coordinator.internal:7000"
 }

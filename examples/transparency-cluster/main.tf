@@ -5,5 +5,5 @@ provider "kubernetes" {
 }
 
 module "transparency" {
-  source = "../modules/transparency-cluster"
+  source = "../../modules/transparency-cluster"
 }
